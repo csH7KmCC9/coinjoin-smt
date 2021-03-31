@@ -80,7 +80,7 @@ def solve_smt_problem(max_outputs, max_unique = None):
 
   #party txfee and cjfee bindings:
   for (party, fee_contribution) in example_txfees:
-    party_txfee[party] = Symbol("party_ctxfee[%02d]" % party, INT)
+    party_txfee[party] = Symbol("party_txfee[%02d]" % party, INT)
     txfee_constraints.add(Equals(party_txfee[party], Int(fee_contribution)))
 
   for (party, fee) in example_cjfee:
@@ -172,6 +172,7 @@ def solve_smt_problem(max_outputs, max_unique = None):
   invariants.add(Equals(total_in, Plus([v for (k, v) in input_amt.items()])))
   invariants.add(Equals(total_in, Plus([v for (k, v) in party_gives.items()])))
   invariants.add(Equals(total_out, Plus([v for (k, v) in output_amt.items()])))
+  invariants.add(Equals(total_out, Plus([v for (k, v) in party_gets.items()])))
 
   #build txfee calculation constraint: 11 + 68 * num_inputs + 31 * num_outputs
   txfee_constraints.add(Equals(txsize,
