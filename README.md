@@ -6,7 +6,7 @@ pysmt-install --z3
 
 # Set up example CoinJoin amount, taker, inputs, txfees, and cjfees (optional)
 
-Change the global variables prefixed with `example_`. Each party (i.e. participant in the CoinJoin) must be assigned a unique integer ID.
+Change the global variables prefixed with `example_`. Each party (i.e. participant in the CoinJoin) must be assigned a unique integer ID. `-1` is reserved as a party ID for the party ID of unused outputs.
 
 # Find a good CoinJoin
 
