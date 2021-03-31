@@ -42,7 +42,21 @@ def solve_smt_problem(max_outputs, max_unique = None):
   input_amt = dict() #index into inputs -> satoshis contributed by that input
   output_party = dict() #index into outputs -> party ID to whom the output belongs
   output_amt = dict() #index into outputs -> satoshis sent to that output
+  output_not_unique = dict() #index into outputs -> 1 if output is in an anonymity set with cardinality > 1, else 0
   main_cj_amt = Symbol("main_cj_amt", INT) #satoshi size of the outputs in the biggest anonymity set including all parties
+
+  for (party, _) in example_txfees:
+    party_gives[party] = Symbol("party_gives[%02d]" % party, INT)
+    party_gets[party] = Symbol("party_gets[%02d]" % party, INT)
+    party_txfee[party] = Symbol("party_txfee[%02d]" % party, INT)
+    party_cjfee[party] = Symbol("party_cjfee[%02d]" % party, INT)
+  for i in range(0, len(example_inputs)):
+    input_party[i] = Symbol("input_party[%02d]" % i, INT)
+    input_amt[i] = Symbol("input_amt[%02d]" % i, INT)
+  for i in range(0, max_outputs):
+    output_party[i] = Symbol("output_party[%02d]" % i, INT)
+    output_amt[i] = Symbol("output_amt[%02d]" % i, INT)
+    output_not_unique[i] = Symbol("output_not_unique[%02d]" % i, INT)
 
   #constraint construction:
   parties = set()
@@ -51,17 +65,12 @@ def solve_smt_problem(max_outputs, max_unique = None):
 
   #party_txfee and party_cjfee bindings:
   for (party, fee_contribution) in example_txfees:
-    party_txfee[party] = Symbol("party_txfee[%02d]" % party, INT)
     txfee_constraints.add(Equals(party_txfee[party], Int(fee_contribution)))
-
   for (party, fee) in example_cjfee:
-    party_cjfee[party] = Symbol("party_cjfee[%02d]" % party, INT)
     txfee_constraints.add(Equals(party_cjfee[party], Int(fee)))
 
   #input_party and input_amt bindings:
   for i in range(0, len(example_inputs)):
-    input_party[i] = Symbol("input_party[%02d]" % i, INT)
-    input_amt[i] = Symbol("input_amt[%02d]" % i, INT)
     input_constraints.add(Equals(input_party[i],\
                                  Int(example_inputs[i][0])))
     input_constraints.add(Equals(input_amt[i],\
@@ -72,8 +81,6 @@ def solve_smt_problem(max_outputs, max_unique = None):
   # -or else output_amt[i] > 0
   output_is_used = list()
   for i in range(0, max_outputs):
-    output_party[i] = Symbol("output_party[%02d]" % i, INT)
-    output_amt[i] = Symbol("output_amt[%02d]" % i, INT)
     output_is_used.append(Ite(Equals(output_party[i],\
                                      Int(-1)),\
                               Int(0),\
@@ -89,9 +96,6 @@ def solve_smt_problem(max_outputs, max_unique = None):
 
   #txfee, party_gets, and party_gives calculation/constraints/binding:
   for party in parties:
-    party_gives[party] = Symbol("party_gives[%02d]" % party, INT)
-    party_gets[party] = Symbol("party_gets[%02d]" % party, INT)
-
     #party_gives and input constraint/invariant
     input_constraints.add(Equals(party_gives[party],\
                                  Plus([Int(a)\
@@ -153,11 +157,10 @@ def solve_smt_problem(max_outputs, max_unique = None):
   for (idx, amt) in output_amt.items():
     not_unique = Or([And(Equals(v, amt), Not(Equals(output_party[k], output_party[idx])))\
                      for (k, v) in filter(lambda x: x[0] != idx, output_amt.items())])
-    output_not_unique = Symbol("output_not_unique[%02d]" % idx, INT)
-    anonymityset_constraints.add(Equals(output_not_unique, Ite(not_unique,\
-                                                               Int(1),\
-                                                               Int(0))))
-    in_anonymity_set.append(output_not_unique)
+    anonymityset_constraints.add(Equals(output_not_unique[idx], Ite(not_unique,\
+                                                                    Int(1),\
+                                                                    Int(0))))
+    in_anonymity_set.append(output_not_unique[idx])
   anonymityset_constraints.add(Equals(num_outputs_in_anonymity_set,
                                       Plus(in_anonymity_set)))
 
