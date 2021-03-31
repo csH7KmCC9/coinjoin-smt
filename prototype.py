@@ -51,7 +51,16 @@ def solve_smt_problem(max_outputs, max_unique = None):
   output_amt = dict() #index into outputs -> satoshis sent to that output
   main_cj_amt = Symbol("main_cj_amt", INT) #satoshi size of the outputs in the biggest anonymity set including all parties
 
-  #initialize variables, build constraints:
+  #party_txfee and party_cjfee bindings:
+  for (party, fee_contribution) in example_txfees:
+    party_txfee[party] = Symbol("party_txfee[%02d]" % party, INT)
+    txfee_constraints.add(Equals(party_txfee[party], Int(fee_contribution)))
+
+  for (party, fee) in example_cjfee:
+    party_cjfee[party] = Symbol("party_cjfee[%02d]" % party, INT)
+    txfee_constraints.add(Equals(party_cjfee[party], Int(fee)))
+
+  #input_party and input_amt bindings:
   for i in range(0, len(example_inputs)):
     input_party[i] = Symbol("input_party[%02d]" % i, INT)
     input_amt[i] = Symbol("input_amt[%02d]" % i, INT)
@@ -60,12 +69,13 @@ def solve_smt_problem(max_outputs, max_unique = None):
     input_constraints.add(Equals(input_amt[i],\
                                  Int(example_inputs[i][1])))
 
+  #add constraints on output_party and output_amt:
+  # -either output_party[i] == -1 and output_amt[i] == 0
+  # -or else output_amt[i] > 0
+  output_is_used = list()
   for i in range(0, max_outputs):
     output_party[i] = Symbol("output_party[%02d]" % i, INT)
     output_amt[i] = Symbol("output_amt[%02d]" % i, INT)
-
-  output_is_used = list()
-  for i in range(0, max_outputs):
     output_is_used.append(Ite(Equals(output_party[i],\
                                      Int(-1)),\
                               Int(0),\
@@ -76,26 +86,19 @@ def solve_smt_problem(max_outputs, max_unique = None):
                                       Int(0)),\
                                GT(output_amt[i],\
                                   Int(0))))
+  #calculate num_outputs:
   output_constraints.add(Equals(num_outputs, Plus(output_is_used)))
 
-  #party txfee and cjfee bindings:
-  for (party, fee_contribution) in example_txfees:
-    party_txfee[party] = Symbol("party_txfee[%02d]" % party, INT)
-    txfee_constraints.add(Equals(party_txfee[party], Int(fee_contribution)))
-
-  for (party, fee) in example_cjfee:
-    party_cjfee[party] = Symbol("party_cjfee[%02d]" % party, INT)
-    txfee_constraints.add(Equals(party_cjfee[party], Int(fee)))
-
-  #tx fee, party_gets, and party_gives calculation/binding:
+  #txfee, party_gets, and party_gives calculation/constraints/binding:
   parties = get_parties(example_inputs)
   for party in parties:
-    #input bindings:
     party_gives[party] = Symbol("party_gives[%02d]" % party, INT)
     party_gets[party] = Symbol("party_gets[%02d]" % party, INT)
+
+    #party_gives and input constraint/invariant
     input_constraints.add(Equals(party_gives[party],\
                                  Plus([Int(a)\
-                                      for (p, a) in filter(lambda x: True if x[0] == party else False, example_inputs)])))
+                                      for (p, a) in filter(lambda x: x[0] == party, example_inputs)])))
 
     #txfee calculations:
     if party != example_taker:
@@ -112,7 +115,7 @@ def solve_smt_problem(max_outputs, max_unique = None):
                                               Plus(cjfees,\
                                                    txfee)))))
 
-    #output bindings:
+    #party_gets and output constraint/invariant:
     amt_vec = list()
     for i in range(0, max_outputs):
       amt = Ite(Equals(output_party[i],\
