@@ -19,13 +19,6 @@ example_amt = 0
 
 feerate = 5 #sats per vbyte target
 
-def get_parties(input_tuples):
-  parties = set()
-  for (party, _) in input_tuples:
-    parties.add(party)
-  return parties
-
-
 def solve_smt_problem(max_outputs, max_unique = None):
   #constraints:
   input_constraints = set()
@@ -50,6 +43,11 @@ def solve_smt_problem(max_outputs, max_unique = None):
   output_party = dict() #index into outputs -> party ID to whom the output belongs
   output_amt = dict() #index into outputs -> satoshis sent to that output
   main_cj_amt = Symbol("main_cj_amt", INT) #satoshi size of the outputs in the biggest anonymity set including all parties
+
+  #constraint construction:
+  parties = set()
+  for (party, _) in example_inputs:
+    parties.add(party)
 
   #party_txfee and party_cjfee bindings:
   for (party, fee_contribution) in example_txfees:
@@ -90,7 +88,6 @@ def solve_smt_problem(max_outputs, max_unique = None):
   output_constraints.add(Equals(num_outputs, Plus(output_is_used)))
 
   #txfee, party_gets, and party_gives calculation/constraints/binding:
-  parties = get_parties(example_inputs)
   for party in parties:
     party_gives[party] = Symbol("party_gives[%02d]" % party, INT)
     party_gets[party] = Symbol("party_gets[%02d]" % party, INT)
