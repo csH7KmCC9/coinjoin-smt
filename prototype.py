@@ -35,21 +35,21 @@ def solve_smt_problem(max_outputs, max_unique = None):
   invariants = set()
 
   #variables:
-  total_in = Symbol("total_in", INT)
-  total_out = Symbol("total_out", INT)
-  num_outputs = Symbol("num_outputs", INT)
-  num_outputs_in_anonymity_set = Symbol("num_outputs_in_anonymity_set", INT)
-  txsize = Symbol("txsize", INT) #estimated vbytes
-  txfee = Symbol("txfee", INT)
-  party_gives = dict()
-  party_gets = dict()
-  party_txfee = dict()
-  party_cjfee = dict()
-  input_party = dict()
-  input_amt = dict()
-  output_party = dict()
-  output_amt = dict()
-  main_cj_amt = Symbol("main_cj_amt", INT)
+  total_in = Symbol("total_in", INT) #total satoshis from inputs
+  total_out = Symbol("total_out", INT) #total satoshis sent to outputs
+  num_outputs = Symbol("num_outputs", INT) #num outputs actually used in the tx
+  num_outputs_in_anonymity_set = Symbol("num_outputs_in_anonymity_set", INT) #num outputs that are not (unique or non-unique but all owned by the same party)
+  txsize = Symbol("txsize", INT) #estimated tx size in vbytes, given the number of inputs and outputs in the tx
+  txfee = Symbol("txfee", INT) #estimated tx fee, given the supplied feerate
+  party_gives = dict() #party ID -> total satoshis on inputs contributed by that party
+  party_gets = dict() #party ID -> total satoshis on outputs belonging to that party
+  party_txfee = dict() #party ID -> satoshis contributed by that party towards the txfee
+  party_cjfee = dict() #party ID -> satoshis earned by that party as a cjfee
+  input_party = dict() #index into inputs -> party ID that contributed that input
+  input_amt = dict() #index into inputs -> satoshis contributed by that input
+  output_party = dict() #index into outputs -> party ID to whom the output belongs
+  output_amt = dict() #index into outputs -> satoshis sent to that output
+  main_cj_amt = Symbol("main_cj_amt", INT) #satoshi size of the outputs in the biggest anonymity set including all parties
 
   #initialize variables, build constraints:
   for i in range(0, len(example_inputs)):
@@ -78,6 +78,7 @@ def solve_smt_problem(max_outputs, max_unique = None):
                                   Int(0))))
   output_constraints.add(Equals(num_outputs, Plus(output_is_used)))
 
+  #party txfee and cjfee bindings:
   for (party, fee_contribution) in example_txfees:
     party_txfee[party] = Symbol("party_ctxfee[%02d]" % party, INT)
     txfee_constraints.add(Equals(party_txfee[party], Int(fee_contribution)))
@@ -86,6 +87,7 @@ def solve_smt_problem(max_outputs, max_unique = None):
     party_cjfee[party] = Symbol("party_cjfee[%02d]" % party, INT)
     txfee_constraints.add(Equals(party_cjfee[party], Int(fee)))
 
+  #tx fee, party_gets, and party_gives calculation/binding:
   parties = get_parties(example_inputs)
   for party in parties:
     #input bindings:
