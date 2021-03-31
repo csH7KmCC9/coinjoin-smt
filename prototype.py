@@ -55,8 +55,10 @@ def solve_smt_problem(max_outputs, max_unique = None):
   for i in range(0, len(example_inputs)):
     input_party[i] = Symbol("input_party[%02d]" % i, INT)
     input_amt[i] = Symbol("input_amt[%02d]" % i, INT)
-    input_constraints.add(Equals(input_party[i], Int(example_inputs[i][0])))
-    input_constraints.add(Equals(input_amt[i], Int(example_inputs[i][1])))
+    input_constraints.add(Equals(input_party[i],\
+                                 Int(example_inputs[i][0])))
+    input_constraints.add(Equals(input_amt[i],\
+                                 Int(example_inputs[i][1])))
 
   for i in range(0, max_outputs):
     output_party[i] = Symbol("output_party[%02d]" % i, INT)
@@ -64,28 +66,34 @@ def solve_smt_problem(max_outputs, max_unique = None):
 
   output_is_used = list()
   for i in range(0, max_outputs):
-    output_is_used.append(Ite(Equals(output_party[i], Int(-1)), Int(0), Int(1)))
-    output_constraints.add(Ite(Equals(output_party[i], Int(-1)),\
-                               Equals(output_amt[i], Int(0)),\
-                               GT(output_amt[i], Int(0))))
+    output_is_used.append(Ite(Equals(output_party[i],\
+                                     Int(-1)),\
+                              Int(0),\
+                              Int(1)))
+    output_constraints.add(Ite(Equals(output_party[i],\
+                                      Int(-1)),\
+                               Equals(output_amt[i],\
+                                      Int(0)),\
+                               GT(output_amt[i],\
+                                  Int(0))))
   output_constraints.add(Equals(num_outputs, Plus(output_is_used)))
 
   for (party, fee_contribution) in example_txfees:
     party_txfee[party] = Symbol("party_ctxfee[%02d]" % party, INT)
-    txfee_constraints.add(Equals(party_txfee[party],\
-                                 Int(fee_contribution)))
+    txfee_constraints.add(Equals(party_txfee[party], Int(fee_contribution)))
 
   for (party, fee) in example_cjfee:
     party_cjfee[party] = Symbol("party_cjfee[%02d]" % party, INT)
-    txfee_constraints.add(Equals(party_cjfee[party],\
-                                 Int(fee)))
+    txfee_constraints.add(Equals(party_cjfee[party], Int(fee)))
 
   parties = get_parties(example_inputs)
   for party in parties:
     #input bindings:
     party_gives[party] = Symbol("party_gives[%02d]" % party, INT)
     party_gets[party] = Symbol("party_gets[%02d]" % party, INT)
-    input_constraints.add(Equals(party_gives[party], Plus([Int(a) for (p, a) in filter(lambda x: True if x[0] == party else False, example_inputs)])))
+    input_constraints.add(Equals(party_gives[party],\
+                                 Plus([Int(a)\
+                                      for (p, a) in filter(lambda x: True if x[0] == party else False, example_inputs)])))
 
     #txfee calculations:
     if party != example_taker:
@@ -105,7 +113,10 @@ def solve_smt_problem(max_outputs, max_unique = None):
     #output bindings:
     amt_vec = list()
     for i in range(0, max_outputs):
-      amt = Ite(Equals(output_party[i], Int(party)), output_amt[i], Int(0))
+      amt = Ite(Equals(output_party[i],\
+                       Int(party)),\
+                output_amt[i],\
+                Int(0))
       amt_vec.append(amt)
     output_constraints.add(Equals(party_gets[party], Plus(amt_vec)))
 
@@ -117,7 +128,7 @@ def solve_smt_problem(max_outputs, max_unique = None):
                                                 main_cj_amt),\
                                          Int(1),\
                                          Int(0))\
-                                    for (k, v) in output_amt.items()])
+                                     for (k, v) in output_amt.items()])
   anonymityset_constraints.add(GE(num_outputs_at_main_cj_amt,\
                                   Int(len(parties))))
 
@@ -130,7 +141,8 @@ def solve_smt_problem(max_outputs, max_unique = None):
                  And(disequal))
     unique_amt_count = Plus([Ite(belongs_and_unique(k),\
                                  Int(1),\
-                                 Int(0)) for (k, v) in output_amt.items()])
+                                 Int(0)) \
+                             for (k, v) in output_amt.items()])
     anonymityset_constraints.add(LE(unique_amt_count, Int(1)))
 
   #calculate how many outputs belong to an anonymity set with cardinality > 1:
@@ -138,7 +150,7 @@ def solve_smt_problem(max_outputs, max_unique = None):
   in_anonymity_set = list()
   for (idx, amt) in output_amt.items():
     not_unique = Or([And(Equals(v, amt), Not(Equals(output_party[k], output_party[idx])))\
-                 for (k, v) in filter(lambda x: x[0] != idx, output_amt.items())])
+                     for (k, v) in filter(lambda x: x[0] != idx, output_amt.items())])
     output_not_unique = Symbol("output_not_unique[%02d]" % idx, INT)
     anonymityset_constraints.add(Equals(output_not_unique, Ite(not_unique,\
                                                                Int(1),\
@@ -160,7 +172,10 @@ def solve_smt_problem(max_outputs, max_unique = None):
   invariants.add(Equals(total_out, Plus([v for (k, v) in output_amt.items()])))
 
   #build txfee calculation constraint: 11 + 68 * num_inputs + 31 * num_outputs
-  txfee_constraints.add(Equals(txsize, Plus(Int(11 + 68 * len(example_inputs)), Times(Int(31), num_outputs))))
+  txfee_constraints.add(Equals(txsize,
+                               Plus(Int(11 + 68 * len(example_inputs)),
+                               Times(Int(31),
+                                     num_outputs))))
   txfee_constraints.add(Equals(txfee, Times(txsize, Int(feerate))))
 
   #finish problem construction:
@@ -174,7 +189,6 @@ def solve_smt_problem(max_outputs, max_unique = None):
     if s.solve([problem]):
       model_lines = reduce(lambda x,y: "%s\n%s" % (x, y), sorted(str(s.get_model()).replace("'", "").split('\n')))
       result = ([s.get_py_value(num_outputs), s.get_py_value(num_outputs_in_anonymity_set)], model_lines)
-      #print(model_lines)
       return result
     else:
       return None
