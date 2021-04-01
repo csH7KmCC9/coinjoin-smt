@@ -85,9 +85,9 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
 
   #input_party and input_amt bindings:
   for i in range(0, num_inputs):
-    input_constraints.add(Equals(input_party[i],\
+    input_constraints.add(Equals(input_party[i],
                                  Int(example_inputs[i][0])))
-    input_constraints.add(Equals(input_amt[i],\
+    input_constraints.add(Equals(input_amt[i],
                                  Int(example_inputs[i][1])))
 
   #add constraints on output_party and output_amt:
@@ -95,15 +95,15 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
   # -or else output_amt[i] > 0
   output_is_used = list()
   for i in range(0, max_outputs):
-    output_is_used.append(Ite(Equals(output_party[i],\
-                                     Int(-1)),\
-                              Int(0),\
+    output_is_used.append(Ite(Equals(output_party[i],
+                                     Int(-1)),
+                              Int(0),
                               Int(1)))
-    output_constraints.add(Ite(Equals(output_party[i],\
-                                      Int(-1)),\
-                               Equals(output_amt[i],\
-                                      Int(0)),\
-                               GT(output_amt[i],\
+    output_constraints.add(Ite(Equals(output_party[i],
+                                      Int(-1)),
+                               Equals(output_amt[i],
+                                      Int(0)),
+                               GT(output_amt[i],
                                   Int(0))))
   #calculate num_outputs:
   output_constraints.add(Equals(num_outputs, Plus(output_is_used)))
@@ -111,71 +111,71 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
   #txfee, party_gets, and party_gives calculation/constraints/binding:
   for party in parties:
     #party_gives and input constraint/invariant
-    input_constraints.add(Equals(party_gives[party],\
+    input_constraints.add(Equals(party_gives[party],
                                  Plus([Int(a)\
                                       for (p, a) in filter(lambda x: x[0] == party, example_inputs)])))
 
     #txfee calculations:
     if party != example_taker:
-      txfee_constraints.add(Equals(party_gets[party],\
-                                   Plus(party_cjfee[party],\
-                                        Minus(party_gives[party],\
+      txfee_constraints.add(Equals(party_gets[party],
+                                   Plus(party_cjfee[party],
+                                        Minus(party_gives[party],
                                               party_txfee[party]))))
     else:
       fee_contributions = Plus([party_txfee[p] for p in filter(lambda x: x != example_taker, parties)])
       cjfees = Plus([party_cjfee[p] for p in filter(lambda x: x != example_taker, parties)])
-      txfee_constraints.add(Equals(party_gets[party],\
+      txfee_constraints.add(Equals(party_gets[party],
                                    Plus(fee_contributions,
-                                        Minus(party_gives[party],\
-                                              Plus(cjfees,\
+                                        Minus(party_gives[party],
+                                              Plus(cjfees,
                                                    txfee)))))
 
     #party_gets and output constraint/invariant:
     amt_vec = list()
     for i in range(0, max_outputs):
-      amt = Ite(Equals(output_party[i],\
-                       Int(party)),\
-                output_amt[i],\
+      amt = Ite(Equals(output_party[i],
+                       Int(party)),
+                output_amt[i],
                 Int(0))
       amt_vec.append(amt)
     output_constraints.add(Equals(party_gets[party], Plus(amt_vec)))
 
   #build anonymity set constraints:
   #first, no matter what, we retain the core CoinJoin with the biggest anonymity set:
-  num_outputs_at_main_cj_amt = Plus([Ite(Equals(v,\
-                                                main_cj_amt),\
-                                         Int(1),\
+  num_outputs_at_main_cj_amt = Plus([Ite(Equals(v,
+                                                main_cj_amt),
+                                         Int(1),
                                          Int(0))\
                                      for (k, v) in output_amt.items()])
-  anonymityset_constraints.add(Equals(main_cj_amt,\
+  anonymityset_constraints.add(Equals(main_cj_amt,
                                       Int(example_amt) if example_amt != 0 else party_gets[example_taker]))
-  anonymityset_constraints.add(GE(num_outputs_at_main_cj_amt,\
+  anonymityset_constraints.add(GE(num_outputs_at_main_cj_amt,
                                   Int(len(parties))))
 
   #also, each party should only have at most one output not part of any anonymity set:
   for party in parties:
     def belongs_and_unique(idx):  #does it belong to party, and is it unique among output amounts?
       disequal = [Not(Equals(v, output_amt[idx])) for (k, v) in filter(lambda x: x[0] != idx, output_amt.items())]
-      return And(Equals(output_party[idx],\
-                        Int(party)),\
+      return And(Equals(output_party[idx],
+                        Int(party)),
                  And(disequal))
-    unique_amt_count = Plus([Ite(belongs_and_unique(k),\
-                                 Int(1),\
-                                 Int(0)) \
+    unique_amt_count = Plus([Ite(belongs_and_unique(k),
+                                 Int(1),
+                                 Int(0))\
                              for (k, v) in output_amt.items()])
     anonymityset_constraints.add(LE(unique_amt_count, Int(1)))
 
   #calculate how many outputs are uniquely identifiable:
   in_anonymity_set = list()
   for (idx, amt) in output_amt.items():
-    not_unique = Or([And(Equals(v,\
-                                amt),\
-                         Not(Equals(output_party[k],\
+    not_unique = Or([And(Equals(v,
+                                amt),
+                         Not(Equals(output_party[k],
                                     output_party[idx])))\
                      for (k, v) in filter(lambda x: x[0] != idx, output_amt.items())])
-    anonymityset_constraints.add(Equals(output_not_unique[idx],\
-                                        Ite(not_unique,\
-                                            Int(1),\
+    anonymityset_constraints.add(Equals(output_not_unique[idx],
+                                        Ite(not_unique,
+                                            Int(1),
                                             Int(0))))
     in_anonymity_set.append(output_not_unique[idx])
   anonymityset_constraints.add(Equals(num_outputs_in_anonymity_set,
@@ -204,7 +204,7 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
 
   #finish problem construction:
   constraints = list()
-  for x in [input_constraints, invariants, txfee_constraints,\
+  for x in [input_constraints, invariants, txfee_constraints,
             output_constraints, anonymityset_constraints]:
     for c in x:
       constraints.append(c)
