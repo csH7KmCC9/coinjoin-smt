@@ -226,15 +226,15 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
       return None
 
 def optimization_procedure():
-  needed_outputs = 3 * len(parties)
-  min_outputs = needed_outputs
+  max_outputs = 3 * len(parties)
+  min_outputs = max_outputs
   max_unique = len(parties)
   max_unique_minimized = False
   best_model = None
 
   while True:
     if not max_unique_minimized:
-      result = solve_smt_problem(needed_outputs, max_unique - 1, timeout = solver_iteration_timeout)
+      result = solve_smt_problem(max_outputs, max_unique - 1, timeout = solver_iteration_timeout)
     else:
       result = solve_smt_problem(min_outputs - 1, max_unique, timeout = solver_iteration_timeout)
 
