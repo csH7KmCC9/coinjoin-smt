@@ -199,7 +199,8 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
 
   #finish problem construction:
   constraints = list()
-  for x in [input_constraints, invariants, txfee_constraints, output_constraints, anonymityset_constraints]:
+  for x in [input_constraints, invariants, txfee_constraints,\
+            output_constraints, anonymityset_constraints]:
     for c in x:
       constraints.append(c)
   problem = And(constraints)
