@@ -215,7 +215,7 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
       return None
 
 def optimization_procedure():
-  needed_outputs = 3 * len(example_inputs)
+  needed_outputs = 3 * len(parties)
   min_outputs = needed_outputs
   max_unique = len(parties)
   max_unique_minimized = False
