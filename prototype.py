@@ -223,8 +223,10 @@ def optimization_procedure():
         break
     else:
       print("------------------")
-      max_unique = result[0][0] - result[0][1]
       min_outputs = result[0][0]
+      max_unique = result[0][0] - result[0][1]
+      if max_unique == 0:
+        max_unique_minimized = True
       print("%d outputs with %d uniquely identifiable" % (min_outputs, max_unique))
 
   return (min_outputs, max_unique)
