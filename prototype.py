@@ -16,8 +16,9 @@ example_cjfee = {(1, 0), (2, 28), (3, 5)}
 example_taker = 1
 #how much? (0 means sweep all)
 example_amt = 0
-
 feerate = 5 #sats per vbyte target
+
+parties = range(1, len(example_txfees) + 1)
 
 def solve_smt_problem(max_outputs, max_unique = None):
   #constraints:
@@ -59,9 +60,6 @@ def solve_smt_problem(max_outputs, max_unique = None):
     output_not_unique[i] = Symbol("output_not_unique[%02d]" % i, INT)
 
   #constraint construction:
-  parties = set()
-  for (party, _) in example_inputs:
-    parties.add(party)
 
   #party_txfee and party_cjfee bindings:
   for (party, fee_contribution) in example_txfees:
@@ -206,16 +204,12 @@ def solve_smt_problem(max_outputs, max_unique = None):
 def optimization_procedure():
   needed_outputs = 3 * len(example_inputs)
   min_outputs = needed_outputs
-  max_unique = None
+  max_unique = len(parties)
   max_unique_minimized = False
 
   while True:
     if not max_unique_minimized:
-      result = None
-      if max_unique is None:
-        result = solve_smt_problem(needed_outputs)
-      else:
-        result = solve_smt_problem(needed_outputs, max_unique - 1)
+      result = solve_smt_problem(needed_outputs, max_unique - 1)
     else:
       result = solve_smt_problem(min_outputs - 1, max_unique)
 
