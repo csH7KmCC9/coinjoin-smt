@@ -48,7 +48,8 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
   total_in = Symbol("total_in", INT) #total satoshis from inputs
   total_out = Symbol("total_out", INT) #total satoshis sent to outputs
   num_outputs = Symbol("num_outputs", INT) #num outputs actually used in the tx
-  num_outputs_in_anonymity_set = Symbol("num_outputs_in_anonymity_set", INT) #num outputs that are not (unique or non-unique but all owned by the same party)
+  max_outputs_sym = Symbol("max_outputs", INT) #the symbolic variable for max_outputs
+  num_unique_outputs = Symbol("num_unique_outputs", INT) #num uniquely identifiable outputs
   txsize = Symbol("txsize", INT) #estimated tx size in vbytes, given the number of inputs and outputs in the tx
   txfee = Symbol("txfee", INT) #estimated tx fee, given the supplied feerate
   party_gives = dict() #party ID -> total satoshis on inputs contributed by that party
@@ -107,7 +108,7 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
                                   Int(0))))
   #calculate num_outputs and bind max_outputs:
   output_constraints.add(Equals(num_outputs, Plus(output_is_used)))
-  output_constraints.add(Equals(Symbol("max_outputs", INT), Int(max_outputs)))
+  output_constraints.add(Equals(max_outputs_sym, Int(max_outputs)))
 
   #txfee, party_gets, and party_gives calculation/constraints/binding:
   for party in parties:
@@ -166,27 +167,29 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
                              for (k, v) in output_amt.items()])
     anonymityset_constraints.add(LE(unique_amt_count, Int(1)))
 
-  #calculate how many outputs are uniquely identifiable:
+  #calculate how many outputs are uniquely identifiable (or unused, which counts for the same):
   in_anonymity_set = list()
   for (idx, amt) in output_amt.items():
-    not_unique = Or([And(Equals(v,
-                                amt),
-                         Not(Equals(output_party[k],
-                                    output_party[idx])))\
-                     for (k, v) in filter(lambda x: x[0] != idx, output_amt.items())])
+    not_unique = Or(Equals(output_party[idx],
+                           Int(-1)),
+                    Or([And(Equals(v,
+                                   amt),
+                            Not(Equals(output_party[k],
+                                       output_party[idx])))\
+                        for (k, v) in filter(lambda x: x[0] != idx, output_amt.items())]))
     anonymityset_constraints.add(Equals(output_not_unique[idx],
                                         Ite(not_unique,
                                             Int(1),
                                             Int(0))))
     in_anonymity_set.append(output_not_unique[idx])
-  anonymityset_constraints.add(Equals(num_outputs_in_anonymity_set,
-                                      Plus(in_anonymity_set)))
+  anonymityset_constraints.add(Equals(num_unique_outputs,
+                                      Minus(max_outputs_sym,
+                                            Plus(in_anonymity_set))))
 
   #constrain (if set) the number of uniquely-identifiable outputs
   #(i.e. those not in an anonymity set with cardinality > 1):
   if max_unique is not None:
-    anonymityset_constraints.add(LE(Minus(num_outputs,
-                                          num_outputs_in_anonymity_set),
+    anonymityset_constraints.add(LE(num_unique_outputs,
                                     Int(max_unique)))
 
   #set transaction invariants:
@@ -215,7 +218,7 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
     try:
       if s.solve([problem]):
         model_lines = sorted(str(s.get_model()).replace("'", "").split('\n'))
-        result = ([s.get_py_value(num_outputs), s.get_py_value(num_outputs_in_anonymity_set)], parse_model_lines(model_lines))
+        result = ([s.get_py_value(num_outputs), s.get_py_value(num_unique_outputs)], parse_model_lines(model_lines))
         return result
       else:
         return None
@@ -249,7 +252,7 @@ def optimization_procedure():
     else:
       print("------------------")
       min_outputs = result[0][0]
-      max_unique = result[0][0] - result[0][1]
+      max_unique = result[0][1]
       best_model = result[1]
       if max_unique == 0:
         max_unique_minimized = True
