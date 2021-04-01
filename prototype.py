@@ -229,7 +229,7 @@ def optimization_procedure():
         break
     else:
       print("------------------")
-      print("%d outputs with %d uniquely identifiable" % (result[0][0], result[0][1]))
+      print("%d outputs with %d uniquely identifiable" % (result[0][0], result[0][0] - result[0][1]))
       if not max_unique_minimized:
         max_unique = result[0][0] - result[0][1]
       else:
