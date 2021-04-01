@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 from pysmt.shortcuts import Symbol, And, Or, Not, Ite, GT, GE, LT, LE, Plus, Minus, Times, Equals, Int, Solver, get_model
+from pysmt.exceptions import SolverReturnedUnknownResultError
 from pysmt.logics import QF_UFLIRA
 from pysmt.typing import INT
 from functools import reduce
 from secrets import randbelow
 import sys
-import multiprocessing as mp
 
 #Example CoinJoin config:
 #a list of (party, satoshis) tuples
@@ -21,7 +21,7 @@ example_amt = 0
 parties = range(1, len(example_txfees) + 1)
 
 feerate = 5 #sats per vbyte target
-solver_iteration_timeout = 60 #allowed to use up to 60 seconds per SMT solver call
+solver_iteration_timeout = 60000 #allowed to use up to 60 seconds per SMT solver call
 
 def parse_model_lines(model_lines):
   ret = dict()
@@ -32,15 +32,6 @@ def parse_model_lines(model_lines):
     ret[k] = int(v)
 
   return ret
-
-def _solve(problem, num_outputs, num_outputs_in_anonymity_set):
-  with Solver() as s:
-    if s.solve([problem]):
-      model_lines = sorted(str(s.get_model()).replace("'", "").split('\n'))
-      result = ([s.get_py_value(num_outputs), s.get_py_value(num_outputs_in_anonymity_set)], parse_model_lines(model_lines))
-      return result
-    else:
-      return None
 
 def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
   #constraints:
@@ -216,14 +207,15 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
       constraints.append(c)
   problem = And(constraints)
 
-  with mp.Pool(processes = 1) as p:
-    res = p.apply_async(_solve, (problem, num_outputs, num_outputs_in_anonymity_set))
+  with Solver(name='z3', solver_options={'timeout': solver_iteration_timeout}) as s:
     try:
-      if timeout is not None:
-        return res.get(timeout = timeout)
+      if s.solve([problem]):
+        model_lines = sorted(str(s.get_model()).replace("'", "").split('\n'))
+        result = ([s.get_py_value(num_outputs), s.get_py_value(num_outputs_in_anonymity_set)], parse_model_lines(model_lines))
+        return result
       else:
-        return res.get()
-    except mp.TimeoutError:
+        return None
+    except SolverReturnedUnknownResultError:
       return None
 
 def optimization_procedure():
