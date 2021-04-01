@@ -18,7 +18,10 @@ example_cjfee = {(1, 0), (2, 28), (3, 5)}
 example_taker = 1
 #how much? (0 means sweep all)
 example_amt = 0
+
+#auto-calculated constants given the example configuration above: 
 parties = range(1, len(example_txfees) + 1)
+num_inputs = len(example_inputs)
 
 feerate = 5 #sats per vbyte target
 solver_iteration_timeout = 60000 #allowed to use up to 60 seconds per SMT solver call
@@ -64,7 +67,7 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
     party_gets[party] = Symbol("party_gets[%d]" % party, INT)
     party_txfee[party] = Symbol("party_txfee[%d]" % party, INT)
     party_cjfee[party] = Symbol("party_cjfee[%d]" % party, INT)
-  for i in range(0, len(example_inputs)):
+  for i in range(0, num_inputs):
     input_party[i] = Symbol("input_party[%d]" % i, INT)
     input_amt[i] = Symbol("input_amt[%d]" % i, INT)
   for i in range(0, max_outputs):
@@ -81,7 +84,7 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
     txfee_constraints.add(Equals(party_cjfee[party], Int(fee)))
 
   #input_party and input_amt bindings:
-  for i in range(0, len(example_inputs)):
+  for i in range(0, num_inputs):
     input_constraints.add(Equals(input_party[i],\
                                  Int(example_inputs[i][0])))
     input_constraints.add(Equals(input_amt[i],\
@@ -194,7 +197,7 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
 
   #build txfee calculation constraint: 11 + 68 * num_inputs + 31 * num_outputs
   txfee_constraints.add(Equals(txsize,
-                               Plus(Int(11 + 68 * len(example_inputs)),
+                               Plus(Int(11 + 68 * num_inputs),
                                Times(Int(31),
                                      num_outputs))))
   txfee_constraints.add(Equals(txfee, Times(txsize, Int(feerate))))
