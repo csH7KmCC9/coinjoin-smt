@@ -223,6 +223,7 @@ def optimization_procedure():
   min_outputs = needed_outputs
   max_unique = len(parties)
   max_unique_minimized = False
+  best_model = None
 
   while True:
     if not max_unique_minimized:
@@ -242,17 +243,14 @@ def optimization_procedure():
       print("------------------")
       min_outputs = result[0][0]
       max_unique = result[0][0] - result[0][1]
+      best_model = result[1]
       if max_unique == 0:
         max_unique_minimized = True
       print("%d outputs with %d uniquely identifiable" % (min_outputs, max_unique))
 
-  return (min_outputs, max_unique)
+  return (min_outputs, max_unique, best_model)
 
-(min_outputs, max_unique) = optimization_procedure()
-result = solve_smt_problem(min_outputs, max_unique)
-assert(result is not None)
-assert(result[0][0] == min_outputs)
-assert(result[0][1] == (min_outputs - max_unique))
+(min_outputs, max_unique, model) = optimization_procedure()
 print("------------------")
 print("Best CoinJoin solution found has %d outputs, of which %d are uniquely identifiable:\n" % (min_outputs, max_unique))
 
@@ -260,11 +258,14 @@ print("Best CoinJoin solution found has %d outputs, of which %d are uniquely ide
 example_outputs = list()
 output_buf = list()
 for i in range(0, min_outputs):
-  output_buf.append((result[1]["output_party[%d]" % i], result[1]["output_amt[%d]" % i]))
+  party = model["output_party[%d]" % i]
+  amt = model["output_amt[%d]" % i]
+  if party != -1:
+    output_buf.append((party, amt))
 while len(output_buf) > 0:
   x = randbelow(len(output_buf))
   example_outputs.append(output_buf.pop(x))
 print(sorted(example_outputs, key = lambda x: x[1], reverse = True))
 
 print("\nraw model:\n")
-print(result[1])
+print(model)
