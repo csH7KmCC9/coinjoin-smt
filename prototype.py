@@ -105,8 +105,9 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
                                       Int(0)),
                                GT(output_amt[i],
                                   Int(0))))
-  #calculate num_outputs:
+  #calculate num_outputs and bind max_outputs:
   output_constraints.add(Equals(num_outputs, Plus(output_is_used)))
+  output_constraints.add(Equals(Symbol("max_outputs", INT), Int(max_outputs)))
 
   #txfee, party_gets, and party_gives calculation/constraints/binding:
   for party in parties:
@@ -265,7 +266,7 @@ else:
   #randomly shuffle output order, then sort by decreasing amount:
   example_outputs = list()
   output_buf = list()
-  for i in range(0, min_outputs):
+  for i in range(0, model["max_outputs"]):
     party = model["output_party[%d]" % i]
     amt = model["output_amt[%d]" % i]
     if party != -1:
