@@ -22,11 +22,21 @@ parties = range(1, len(example_txfees) + 1)
 feerate = 5 #sats per vbyte target
 solver_iteration_timeout = 60 #allowed to use up to 60 seconds per SMT solver call
 
+def parse_model_lines(model_lines):
+  ret = dict()
+  for line in model_lines:
+    split = line.split(' := ')
+    k = split[0]
+    v = split[1]
+    ret[k] = int(v)
+
+  return ret
+
 def _solve(problem, num_outputs, num_outputs_in_anonymity_set):
   with Solver() as s:
     if s.solve([problem]):
-      model_lines = reduce(lambda x,y: "%s\n%s" % (x, y), sorted(str(s.get_model()).replace("'", "").split('\n')))
-      result = ([s.get_py_value(num_outputs), s.get_py_value(num_outputs_in_anonymity_set)], model_lines)
+      model_lines = sorted(str(s.get_model()).replace("'", "").split('\n'))
+      result = ([s.get_py_value(num_outputs), s.get_py_value(num_outputs_in_anonymity_set)], parse_model_lines(model_lines))
       return result
     else:
       return None
@@ -58,17 +68,17 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
   main_cj_amt = Symbol("main_cj_amt", INT) #satoshi size of the outputs in the biggest anonymity set including all parties
 
   for (party, _) in example_txfees:
-    party_gives[party] = Symbol("party_gives[%02d]" % party, INT)
-    party_gets[party] = Symbol("party_gets[%02d]" % party, INT)
-    party_txfee[party] = Symbol("party_txfee[%02d]" % party, INT)
-    party_cjfee[party] = Symbol("party_cjfee[%02d]" % party, INT)
+    party_gives[party] = Symbol("party_gives[%d]" % party, INT)
+    party_gets[party] = Symbol("party_gets[%d]" % party, INT)
+    party_txfee[party] = Symbol("party_txfee[%d]" % party, INT)
+    party_cjfee[party] = Symbol("party_cjfee[%d]" % party, INT)
   for i in range(0, len(example_inputs)):
-    input_party[i] = Symbol("input_party[%02d]" % i, INT)
-    input_amt[i] = Symbol("input_amt[%02d]" % i, INT)
+    input_party[i] = Symbol("input_party[%d]" % i, INT)
+    input_amt[i] = Symbol("input_amt[%d]" % i, INT)
   for i in range(0, max_outputs):
-    output_party[i] = Symbol("output_party[%02d]" % i, INT)
-    output_amt[i] = Symbol("output_amt[%02d]" % i, INT)
-    output_not_unique[i] = Symbol("output_not_unique[%02d]" % i, INT)
+    output_party[i] = Symbol("output_party[%d]" % i, INT)
+    output_amt[i] = Symbol("output_amt[%d]" % i, INT)
+    output_not_unique[i] = Symbol("output_not_unique[%d]" % i, INT)
 
   #constraint construction:
 
