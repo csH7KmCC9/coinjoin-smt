@@ -128,13 +128,13 @@ def solve_smt_problem(max_outputs, max_unique = None):
 
   #build anonymity set constraints:
   #first, no matter what, we retain the core CoinJoin with the biggest anonymity set:
-  anonymityset_constraints.add(Equals(main_cj_amt,\
-                                      Int(example_amt) if example_amt != 0 else party_gets[example_taker]))
   num_outputs_at_main_cj_amt = Plus([Ite(Equals(v,\
                                                 main_cj_amt),\
                                          Int(1),\
                                          Int(0))\
                                      for (k, v) in output_amt.items()])
+  anonymityset_constraints.add(Equals(main_cj_amt,\
+                                      Int(example_amt) if example_amt != 0 else party_gets[example_taker]))
   anonymityset_constraints.add(GE(num_outputs_at_main_cj_amt,\
                                   Int(len(parties))))
 
@@ -154,11 +154,15 @@ def solve_smt_problem(max_outputs, max_unique = None):
   #calculate how many outputs are uniquely identifiable:
   in_anonymity_set = list()
   for (idx, amt) in output_amt.items():
-    not_unique = Or([And(Equals(v, amt), Not(Equals(output_party[k], output_party[idx])))\
+    not_unique = Or([And(Equals(v,\
+                                amt),\
+                         Not(Equals(output_party[k],\
+                                    output_party[idx])))\
                      for (k, v) in filter(lambda x: x[0] != idx, output_amt.items())])
-    anonymityset_constraints.add(Equals(output_not_unique[idx], Ite(not_unique,\
-                                                                    Int(1),\
-                                                                    Int(0))))
+    anonymityset_constraints.add(Equals(output_not_unique[idx],\
+                                        Ite(not_unique,\
+                                            Int(1),\
+                                            Int(0))))
     in_anonymity_set.append(output_not_unique[idx])
   anonymityset_constraints.add(Equals(num_outputs_in_anonymity_set,
                                       Plus(in_anonymity_set)))
