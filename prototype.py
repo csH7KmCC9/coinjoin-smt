@@ -4,6 +4,7 @@ from pysmt.logics import QF_UFLIRA
 from pysmt.typing import INT
 from functools import reduce
 import sys
+import multiprocessing as mp
 
 #Example CoinJoin config:
 #a list of (party, satoshis) tuples
@@ -16,11 +17,21 @@ example_cjfee = {(1, 0), (2, 28), (3, 5)}
 example_taker = 1
 #how much? (0 means sweep all)
 example_amt = 0
-feerate = 5 #sats per vbyte target
-
 parties = range(1, len(example_txfees) + 1)
 
-def solve_smt_problem(max_outputs, max_unique = None):
+feerate = 5 #sats per vbyte target
+solver_iteration_timeout = 60 #allowed to use up to 60 seconds per SMT solver call
+
+def _solve(problem, num_outputs, num_outputs_in_anonymity_set):
+  with Solver() as s:
+    if s.solve([problem]):
+      model_lines = reduce(lambda x,y: "%s\n%s" % (x, y), sorted(str(s.get_model()).replace("'", "").split('\n')))
+      result = ([s.get_py_value(num_outputs), s.get_py_value(num_outputs_in_anonymity_set)], model_lines)
+      return result
+    else:
+      return None
+
+def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
   #constraints:
   input_constraints = set()
   output_constraints = set()
@@ -193,12 +204,14 @@ def solve_smt_problem(max_outputs, max_unique = None):
       constraints.append(c)
   problem = And(constraints)
 
-  with Solver() as s:
-    if s.solve([problem]):
-      model_lines = reduce(lambda x,y: "%s\n%s" % (x, y), sorted(str(s.get_model()).replace("'", "").split('\n')))
-      result = ([s.get_py_value(num_outputs), s.get_py_value(num_outputs_in_anonymity_set)], model_lines)
-      return result
-    else:
+  with mp.Pool(processes = 1) as p:
+    res = p.apply_async(_solve, (problem, num_outputs, num_outputs_in_anonymity_set))
+    try:
+      if timeout is not None:
+        return res.get(timeout = timeout)
+      else:
+        return res.get()
+    except mp.TimeoutError:
       return None
 
 def optimization_procedure():
@@ -209,9 +222,9 @@ def optimization_procedure():
 
   while True:
     if not max_unique_minimized:
-      result = solve_smt_problem(needed_outputs, max_unique - 1)
+      result = solve_smt_problem(needed_outputs, max_unique - 1, timeout = solver_iteration_timeout)
     else:
-      result = solve_smt_problem(min_outputs - 1, max_unique)
+      result = solve_smt_problem(min_outputs - 1, max_unique, timeout = solver_iteration_timeout)
 
     if result is None:
       print("------------------")
