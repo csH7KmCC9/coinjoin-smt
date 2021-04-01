@@ -42,7 +42,7 @@ def solve_smt_problem(max_outputs, max_unique = None):
   input_amt = dict() #index into inputs -> satoshis contributed by that input
   output_party = dict() #index into outputs -> party ID to whom the output belongs
   output_amt = dict() #index into outputs -> satoshis sent to that output
-  output_not_unique = dict() #index into outputs -> 1 if output is in an anonymity set with cardinality > 1, else 0
+  output_not_unique = dict() #index into outputs -> 1 if output is uniquely identifiable, else 0
   main_cj_amt = Symbol("main_cj_amt", INT) #satoshi size of the outputs in the biggest anonymity set including all parties
 
   for (party, _) in example_txfees:
@@ -151,8 +151,7 @@ def solve_smt_problem(max_outputs, max_unique = None):
                              for (k, v) in output_amt.items()])
     anonymityset_constraints.add(LE(unique_amt_count, Int(1)))
 
-  #calculate how many outputs belong to an anonymity set with cardinality > 1:
-  #(TODO this would be better encoded as a MaxSMT problem):
+  #calculate how many outputs are uniquely identifiable:
   in_anonymity_set = list()
   for (idx, amt) in output_amt.items():
     not_unique = Or([And(Equals(v, amt), Not(Equals(output_party[k], output_party[idx])))\
@@ -164,7 +163,8 @@ def solve_smt_problem(max_outputs, max_unique = None):
   anonymityset_constraints.add(Equals(num_outputs_in_anonymity_set,
                                       Plus(in_anonymity_set)))
 
-  #constrain (if set) the number of unique outputs (i.e. those not in an anonymity set with cardinality > 1):
+  #constrain (if set) the number of uniquely-identifiable outputs
+  #(i.e. those not in an anonymity set with cardinality > 1):
   if max_unique is not None:
     anonymityset_constraints.add(LE(Minus(num_outputs,
                                           num_outputs_in_anonymity_set),
@@ -225,7 +225,7 @@ def optimization_procedure():
         break
     else:
       print("------------------")
-      print("%d outputs with %d in an anonymity set with cardinality > 1" % (result[0][0], result[0][1]))
+      print("%d outputs with %d uniquely identifiable" % (result[0][0], result[0][1]))
       if not max_unique_minimized:
         max_unique = result[0][0] - result[0][1]
       else:
@@ -239,5 +239,5 @@ assert(result is not None)
 assert(result[0][0] == min_outputs)
 assert(result[0][1] == (min_outputs - max_unique))
 print("------------------")
-print("Optimal CoinJoin solution with %d outputs and %d *not* in an anonymity set:\n" % (min_outputs, max_unique))
+print("Optimal CoinJoin solution with %d outputs and %d uniquely identifiable:\n" % (min_outputs, max_unique))
 print(result[1])
