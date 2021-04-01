@@ -15,11 +15,17 @@ min_output_amt = 30000 #minimum number of satoshis that can go to each output
 min_output_amt_delta = 3000 #minimum number of satoshis that output amounts must differ by, if they differ
 
 #a list of (party, satoshis) tuples
-example_inputs = [(1, 100000000), (2, 130000000), (3, 70000000), (3, 70000000)]
+example_inputs = [(1, 100000000),\
+(2, 130000000),\
+(3, 70000000), (3, 70000000),\
+(4, 107354073),\
+(5, 101063506),\
+(6, 122929194),\
+(7, 27490915), (7, 85582261)]
 #a set of (party, satoshis) tuples
-example_txfees = {(1, 0), (2, 17), (3, 0)}
+example_txfees = {(1, 0), (2, 17), (3, 0), (4, 0), (5, 0), (6, 68), (7, 0)}
 #a set of (party, satoshis) tuples
-example_cjfee = {(1, 0), (2, 28), (3, 5)}
+example_cjfee = {(1, 0), (2, 28), (3, 5), (4, 0), (5, 370), (6, 100), (7, 0)}
 #which party will be responsible for the bulk of the tx fees?
 example_taker = 1
 #how much? (0 means sweep all)
