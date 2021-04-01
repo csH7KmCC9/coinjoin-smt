@@ -255,20 +255,23 @@ def optimization_procedure():
 
 (min_outputs, max_unique, model) = optimization_procedure()
 print("------------------")
-print("Best CoinJoin solution found has %d outputs, of which %d are uniquely identifiable:\n" % (min_outputs, max_unique))
+if model is None:
+    print("Could not find a CoinJoin solution with less than %d seconds of solver time" % (solver_iteration_timeout / 1000))
+    sys.exit(1)
+else:
+  #randomly shuffle output order, then sort by decreasing amount:
+  example_outputs = list()
+  output_buf = list()
+  for i in range(0, min_outputs):
+    party = model["output_party[%d]" % i]
+    amt = model["output_amt[%d]" % i]
+    if party != -1:
+      output_buf.append((party, amt))
+  while len(output_buf) > 0:
+    x = randbelow(len(output_buf))
+    example_outputs.append(output_buf.pop(x))
 
-#randomly shuffle output order, then sort by decreasing amount:
-example_outputs = list()
-output_buf = list()
-for i in range(0, min_outputs):
-  party = model["output_party[%d]" % i]
-  amt = model["output_amt[%d]" % i]
-  if party != -1:
-    output_buf.append((party, amt))
-while len(output_buf) > 0:
-  x = randbelow(len(output_buf))
-  example_outputs.append(output_buf.pop(x))
-print(sorted(example_outputs, key = lambda x: x[1], reverse = True))
-
-print("\nraw model:\n")
-print(model)
+  print("Best CoinJoin solution found has %d outputs, of which %d are uniquely identifiable:\n" % (min_outputs, max_unique))
+  print(sorted(example_outputs, key = lambda x: x[1], reverse = True))
+  print("\nraw model:\n")
+  print(model)
