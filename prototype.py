@@ -3,6 +3,7 @@ from pysmt.shortcuts import Symbol, And, Or, Not, Ite, GT, GE, LT, LE, Plus, Min
 from pysmt.logics import QF_UFLIRA
 from pysmt.typing import INT
 from functools import reduce
+from secrets import randbelow
 import sys
 import multiprocessing as mp
 
@@ -262,4 +263,16 @@ assert(result[0][0] == min_outputs)
 assert(result[0][1] == (min_outputs - max_unique))
 print("------------------")
 print("Optimal CoinJoin solution with %d outputs and %d uniquely identifiable:\n" % (min_outputs, max_unique))
+
+#randomly shuffle output order, then sort by decreasing amount:
+example_outputs = list()
+output_buf = list()
+for i in range(0, min_outputs):
+  output_buf.append((result[1]["output_party[%d]" % i], result[1]["output_amt[%d]" % i]))
+while len(output_buf) > 0:
+  x = randbelow(len(output_buf))
+  example_outputs.append(output_buf.pop(x))
+print(sorted(example_outputs, key = lambda x: x[1], reverse = True))
+
+print("\nraw model:\n")
 print(result[1])
