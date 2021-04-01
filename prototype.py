@@ -262,7 +262,7 @@ assert(result is not None)
 assert(result[0][0] == min_outputs)
 assert(result[0][1] == (min_outputs - max_unique))
 print("------------------")
-print("Optimal CoinJoin solution with %d outputs and %d uniquely identifiable:\n" % (min_outputs, max_unique))
+print("Best CoinJoin solution found has %d outputs, of which %d are uniquely identifiable:\n" % (min_outputs, max_unique))
 
 #randomly shuffle output order, then sort by decreasing amount:
 example_outputs = list()
