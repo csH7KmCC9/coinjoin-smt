@@ -238,8 +238,11 @@ def optimization_procedure():
       print("------------------")
       print("No solution found")
       if not max_unique_minimized:
-        max_unique_minimized = True
-        print("max_unique has been minimized at %d" % max_unique)
+        if best_model is None:
+          return None #we couldn't even solve the initial, most relaxed constraint. bail out.
+        else:
+          max_unique_minimized = True
+          print("max_unique has been minimized at %d" % max_unique)
       else:
         break
     else:
