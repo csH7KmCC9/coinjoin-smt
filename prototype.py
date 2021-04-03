@@ -8,7 +8,8 @@ from secrets import randbelow
 import sys
 
 #Example CoinJoin config:
-feerate = 5 #sats per vbyte target
+min_feerate = 5 #sats per vbyte target minimum
+max_feerate = 11 #sats per vbyte maximum we're willing to pay
 solver_iteration_timeout = 60000 #allowed to use up to 60 seconds per SMT solver call
 
 #a list of (party, satoshis) tuples
@@ -204,7 +205,8 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
                                Plus(Int(11 + 68 * num_inputs),
                                Times(Int(31),
                                      num_outputs))))
-  txfee_constraints.add(Equals(txfee, Times(txsize, Int(feerate))))
+  txfee_constraints.add(GE(txfee, Times(txsize, Int(min_feerate))))
+  txfee_constraints.add(LE(txfee, Times(txsize, Int(max_feerate))))
 
   #finish problem construction:
   constraints = list()
