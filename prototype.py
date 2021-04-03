@@ -8,6 +8,9 @@ from secrets import randbelow
 import sys
 
 #Example CoinJoin config:
+feerate = 5 #sats per vbyte target
+solver_iteration_timeout = 60000 #allowed to use up to 60 seconds per SMT solver call
+
 #a list of (party, satoshis) tuples
 example_inputs = [(1, 100000000), (2, 130000000), (3, 70000000), (3, 70000000)]
 #a set of (party, satoshis) tuples
@@ -22,9 +25,6 @@ example_amt = 0
 #auto-calculated constants given the example configuration above: 
 parties = range(1, len(example_txfees) + 1)
 num_inputs = len(example_inputs)
-
-feerate = 5 #sats per vbyte target
-solver_iteration_timeout = 60000 #allowed to use up to 60 seconds per SMT solver call
 
 def parse_model_lines(model_lines):
   ret = dict()
