@@ -11,6 +11,7 @@ import sys
 min_feerate = 5 #sats per vbyte target minimum
 max_feerate = 11 #sats per vbyte maximum we're willing to pay
 solver_iteration_timeout = 60000 #allowed to use up to 60 seconds per SMT solver call
+min_output_amt = 30000 #minimum number of satoshis that can go to each output
 
 #a list of (party, satoshis) tuples
 example_inputs = [(1, 100000000), (2, 130000000), (3, 70000000), (3, 70000000)]
@@ -106,7 +107,7 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
                                Equals(output_amt[i],
                                       Int(0)),
                                GT(output_amt[i],
-                                  Int(0))))
+                                  Int(min(0, min_output_amt-1)))))
   #calculate num_outputs and bind max_outputs:
   output_constraints.add(Equals(num_outputs, Plus(output_is_used)))
   output_constraints.add(Equals(max_outputs_sym, Int(max_outputs)))
