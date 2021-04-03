@@ -110,9 +110,14 @@ def solve_smt_problem(max_outputs, min_anonymity_score = None, timeout = None):
   #txfee, party_gets, and party_gives calculation/constraints/binding:
   for party in parties:
     #party_gives and input constraint/invariant
-    input_constraints.add(Equals(party_gives[party],
-                                 Plus([Int(a)\
-                                      for (p, a) in filter(lambda x: x[0] == party, example_inputs)])))
+    amt_vec = list()
+    for i in range(0, num_inputs):
+      amt = Ite(Equals(input_party[i],
+                       Int(party)),
+                input_amt[i],
+                Int(0))
+      amt_vec.append(amt)
+    input_constraints.add(Equals(party_gives[party], Plus(amt_vec)))
 
     #txfee calculations:
     txfee_constraints.add(Equals(party_gets[party],
