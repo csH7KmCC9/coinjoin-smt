@@ -234,6 +234,7 @@ else:
   example_outputs = list()
   input_buf = list()
   output_buf = list()
+  contributing_parties = set()
 
   for i in range(0, model["max_outputs"]):
     party = model["output_party[%d]" % i]
@@ -248,12 +249,13 @@ else:
     party = model["input_party[%d]" % i]
     amt = model["input_amt[%d]" % i]
     if party != -1:
+      contributing_parties.add(party)
       input_buf.append((party, amt))
   while len(input_buf) > 0:
     x = randbelow(len(input_buf))
     selected_inputs.append(input_buf.pop(x))
 
-  print("Best CoinJoin solution found has %d outputs with anonymity score %d:\n" % (min_outputs, min_anonymity_score))
+  print("Best CoinJoin solution found has %d outputs from %d parties with anonymity score %d:\n" % (min_outputs, len(contributing_parties), min_anonymity_score))
   print(sorted(example_outputs, key = lambda x: x[1], reverse = True))
   print("using inputs:")
   print(selected_inputs)
