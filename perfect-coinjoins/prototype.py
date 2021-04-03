@@ -16,9 +16,9 @@ min_output_amt_delta = 3000 #minimum number of satoshis that output amounts must
 max_party_fragmentation_factor = 3 #if party provides x inputs, allow giving that party up to x times this number of outputs
 
 #a list of (party, satoshis) tuples
-example_inputs = [(1, 100000000), (2, 130000000), (3, 70000000), (3, 70000000)]
-#a set of (party, satoshis) tuples, maximum amounts each party is willing to pay
-example_txfees = {(1, 757), (2, 500), (3, 1337)}
+example_inputs = [(1, 100000000), (2, 130000000), (3, 70000000), (3, 70000000), (4, 152071149)]
+#a set of (party, satoshis) tuples
+example_txfees = {(1, 757), (2, 500), (3, 1337), (4, 513)}
 
 #auto-calculated constants given the example configuration above: 
 parties = range(1, len(example_txfees) + 1)
