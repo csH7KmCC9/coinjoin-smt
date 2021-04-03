@@ -230,8 +230,11 @@ if model is None:
     sys.exit(1)
 else:
   #randomly shuffle output order, then sort by decreasing amount:
+  selected_inputs = list()
   example_outputs = list()
+  input_buf = list()
   output_buf = list()
+
   for i in range(0, model["max_outputs"]):
     party = model["output_party[%d]" % i]
     amt = model["output_amt[%d]" % i]
@@ -241,7 +244,18 @@ else:
     x = randbelow(len(output_buf))
     example_outputs.append(output_buf.pop(x))
 
+  for i in range(0, len(example_inputs)):
+    party = model["input_party[%d]" % i]
+    amt = model["input_amt[%d]" % i]
+    if party != -1:
+      input_buf.append((party, amt))
+  while len(input_buf) > 0:
+    x = randbelow(len(input_buf))
+    selected_inputs.append(input_buf.pop(x))
+
   print("Best CoinJoin solution found has %d outputs with anonymity score %d:\n" % (min_outputs, min_anonymity_score))
   print(sorted(example_outputs, key = lambda x: x[1], reverse = True))
+  print("using inputs:")
+  print(selected_inputs)
   print("\nraw model:\n")
   print(model)
