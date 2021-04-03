@@ -12,6 +12,7 @@ min_feerate = 5 #sats per vbyte target minimum
 max_feerate = 11 #sats per vbyte maximum we're willing to pay
 solver_iteration_timeout = 60000 #allowed to use up to 60 seconds per SMT solver call
 min_output_amt = 30000 #minimum number of satoshis that can go to each output
+max_party_fragmentation_factor = 3 #if party provides x inputs, allow giving that party up to x times this number of outputs
 
 #a list of (party, satoshis) tuples
 example_inputs = [(1, 100000000), (2, 130000000), (3, 70000000), (3, 70000000)]
@@ -51,6 +52,8 @@ def solve_smt_problem(max_outputs, min_anonymity_score = None, timeout = None):
   party_gives = dict() #party ID -> total satoshis on inputs contributed by that party
   party_gets = dict() #party ID -> total satoshis on outputs belonging to that party
   party_txfee = dict() #party ID -> satoshis contributed by that party towards the txfee
+  party_numinputs = dict()
+  party_numoutputs = dict()
   input_party = dict() #index into inputs -> party ID that contributed that input
   input_amt = dict() #index into inputs -> satoshis contributed by that input
   output_party = dict() #index into outputs -> party ID to whom the output belongs
@@ -61,6 +64,8 @@ def solve_smt_problem(max_outputs, min_anonymity_score = None, timeout = None):
     party_gives[party] = Symbol("party_gives[%d]" % party, INT)
     party_gets[party] = Symbol("party_gets[%d]" % party, INT)
     party_txfee[party] = Symbol("party_txfee[%d]" % party, INT)
+    party_numinputs[party] = Symbol("party_numinputs[%d]" % party, INT)
+    party_numoutputs[party] = Symbol("party_numoutputs[%d]" % party, INT)
   for i in range(0, num_inputs):
     input_party[i] = Symbol("input_party[%d]" % i, INT)
     input_amt[i] = Symbol("input_amt[%d]" % i, INT)
@@ -110,13 +115,15 @@ def solve_smt_problem(max_outputs, min_anonymity_score = None, timeout = None):
   #txfee, party_gets, and party_gives calculation/constraints/binding:
   for party in parties:
     #party_gives and input constraint/invariant
+    owned_vec = list()
     amt_vec = list()
     for i in range(0, num_inputs):
-      amt = Ite(Equals(input_party[i],
-                       Int(party)),
-                input_amt[i],
-                Int(0))
+      owned = Equals(input_party[i],
+                     Int(party))
+      amt = Ite(owned, input_amt[i], Int(0))
+      owned_vec.append(Ite(owned, Int(1), Int(0)))
       amt_vec.append(amt)
+    input_constraints.add(Equals(party_numinputs[party], Plus(owned_vec)))
     input_constraints.add(Equals(party_gives[party], Plus(amt_vec)))
 
     #txfee calculations:
@@ -125,14 +132,21 @@ def solve_smt_problem(max_outputs, min_anonymity_score = None, timeout = None):
                                        party_txfee[party])))
 
     #party_gets and output constraint/invariant:
+    owned_vec = list()
     amt_vec = list()
     for i in range(0, max_outputs):
-      amt = Ite(Equals(output_party[i],
-                       Int(party)),
-                output_amt[i],
-                Int(0))
+      owned = Equals(output_party[i],
+                     Int(party))
+      amt = Ite(owned, output_amt[i], Int(0))
+      owned_vec.append(Ite(owned, Int(1), Int(0)))
       amt_vec.append(amt)
     output_constraints.add(Equals(party_gets[party], Plus(amt_vec)))
+    output_constraints.add(Equals(party_numoutputs[party], Plus(owned_vec)))
+
+    #build party fragmentation constraints:
+    output_constraints.add(LE(party_numoutputs[party],
+                              Times(Int(max_party_fragmentation_factor),
+                                    party_numinputs[party])))
 
   #build anonymity set constraints:
   #each party should not have any uniquely-identifiable output:
