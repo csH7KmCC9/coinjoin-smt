@@ -3,7 +3,7 @@ Community Join
 This is a repo for the solver for community joins. These are CoinJoins that are executed manually by people communicating PSBTs over GPG-encrypted emails (or some other out-of-scope communication channel).
 
 These are a bit different from regular CoinJoins:
-- There is no maker/taker model. All parties are takers, and there is one coordinator who knows the association between parties' inputs and outputs and may or may be party to a given join.
+- There is no maker/taker model. All parties are takers, and there is one coordinator who knows the association between parties' inputs and outputs and may or may not be party to a given join.
 - Parties provide the following values to the coordinator:
     - party\_inputs: A list of UTXOs (`txid:index`) the party wishes to join.
     - max\_txfee\_contribution: How many satoshis that party is willing to contribute to the CoinJoin transaction fee. Must be at least `500 * len(party_inputs)`. Will be scaled in proportion to the number of inputs actually used (so if you offer 3 inputs with a max contribution of 1500 satoshis, and only 2 of your inputs are chosen for the CoinJoin, you won't pay more than 1000 satoshis).
