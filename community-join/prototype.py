@@ -33,6 +33,34 @@ def parse_model_lines(model_lines):
 
   return ret
 
+def recover_cj_config_from_model(model):
+  selected_inputs = list()
+  outputs = list()
+  input_buf = list()
+  output_buf = list()
+  contributing_parties = set()
+
+  for i in range(0, model["max_outputs"]):
+    party = model["output_party[%d]" % i]
+    amt = model["output_amt[%d]" % i]
+    if party != -1:
+      output_buf.append((party, amt))
+  while len(output_buf) > 0:
+    x = randbelow(len(output_buf))
+    outputs.append(output_buf.pop(x))
+
+  for i in range(0, num_inputs):
+    party = model["input_party[%d]" % i]
+    amt = model["input_amt[%d]" % i]
+    if party != -1:
+      contributing_parties.add(party)
+      input_buf.append((party, amt))
+  while len(input_buf) > 0:
+    x = randbelow(len(input_buf))
+    selected_inputs.append(input_buf.pop(x))
+
+  return (selected_inputs, sorted(outputs, key = lambda x: x[1], reverse = True))
+
 def solve_smt_problem(max_outputs, min_anonymity_score = None, timeout = None):
   #constraints:
   input_constraints = set()
@@ -238,7 +266,12 @@ def optimization_procedure():
       min_outputs = result[0][0]
       min_anonymity_score = result[0][1]
       best_model = result[1]
-      print("%d outputs with anonymity score %d" % (min_outputs, min_anonymity_score))
+      (selected_inputs, outputs) = recover_cj_config_from_model(best_model)
+      print("%d inputs, %d outputs with anonymity score %d" % (len(selected_inputs), min_outputs, min_anonymity_score))
+      print("inputs:")
+      print(selected_inputs)
+      print("outputs:")
+      print(outputs)
 
   return (min_outputs, min_anonymity_score, best_model)
 
@@ -249,34 +282,17 @@ if model is None:
     sys.exit(1)
 else:
   #randomly shuffle output order, then sort by decreasing amount:
-  selected_inputs = list()
-  example_outputs = list()
-  input_buf = list()
-  output_buf = list()
-  contributing_parties = set()
+  (selected_inputs, example_outputs) = recover_cj_config_from_model(model)
+  def uniqueify(what):
+    buf = set()
+    for x in what:
+      buf.add(x)
+    return buf
+  num_contributing_parties = len(uniqueify([x[0] for x in example_outputs]))
 
-  for i in range(0, model["max_outputs"]):
-    party = model["output_party[%d]" % i]
-    amt = model["output_amt[%d]" % i]
-    if party != -1:
-      output_buf.append((party, amt))
-  while len(output_buf) > 0:
-    x = randbelow(len(output_buf))
-    example_outputs.append(output_buf.pop(x))
-
-  for i in range(0, len(example_inputs)):
-    party = model["input_party[%d]" % i]
-    amt = model["input_amt[%d]" % i]
-    if party != -1:
-      contributing_parties.add(party)
-      input_buf.append((party, amt))
-  while len(input_buf) > 0:
-    x = randbelow(len(input_buf))
-    selected_inputs.append(input_buf.pop(x))
-
-  print("Best CoinJoin solution found has %d outputs from %d parties with anonymity score %d:\n" % (min_outputs, len(contributing_parties), min_anonymity_score))
-  print(sorted(example_outputs, key = lambda x: x[1], reverse = True))
-  print("using inputs:")
+  print("Best CoinJoin solution found has %d inputs from %d parties:" % (len(selected_inputs), num_contributing_parties))
   print(selected_inputs)
+  print("and has %d outputs with anonymity score %d:" % (min_outputs, min_anonymity_score))
+  print(example_outputs)
   print("\nraw model:\n")
   print(model)

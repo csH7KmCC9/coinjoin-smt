@@ -38,6 +38,34 @@ def parse_model_lines(model_lines):
 
   return ret
 
+def recover_cj_config_from_model(model):
+  selected_inputs = list()
+  outputs = list()
+  input_buf = list()
+  output_buf = list()
+  contributing_parties = set()
+
+  for i in range(0, model["max_outputs"]):
+    party = model["output_party[%d]" % i]
+    amt = model["output_amt[%d]" % i]
+    if party != -1:
+      output_buf.append((party, amt))
+  while len(output_buf) > 0:
+    x = randbelow(len(output_buf))
+    outputs.append(output_buf.pop(x))
+
+  for i in range(0, num_inputs):
+    party = model["input_party[%d]" % i]
+    amt = model["input_amt[%d]" % i]
+    if party != -1:
+      contributing_parties.add(party)
+      input_buf.append((party, amt))
+  while len(input_buf) > 0:
+    x = randbelow(len(input_buf))
+    selected_inputs.append(input_buf.pop(x))
+
+  return (selected_inputs, sorted(outputs, key = lambda x: x[1], reverse = True))
+
 def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
   #constraints:
   input_constraints = set()
@@ -260,6 +288,8 @@ def optimization_procedure():
       if max_unique == 0:
         max_unique_minimized = True
       print("%d outputs with %d uniquely identifiable" % (min_outputs, max_unique))
+      (_, example_outputs) = recover_cj_config_from_model(best_model)
+      print(example_outputs)
 
   return (min_outputs, max_unique, best_model)
 
@@ -270,18 +300,9 @@ if model is None:
     sys.exit(1)
 else:
   #randomly shuffle output order, then sort by decreasing amount:
-  example_outputs = list()
-  output_buf = list()
-  for i in range(0, model["max_outputs"]):
-    party = model["output_party[%d]" % i]
-    amt = model["output_amt[%d]" % i]
-    if party != -1:
-      output_buf.append((party, amt))
-  while len(output_buf) > 0:
-    x = randbelow(len(output_buf))
-    example_outputs.append(output_buf.pop(x))
+  (_, example_outputs) = recover_cj_config_from_model(model)
 
-  print("Best CoinJoin solution found has %d outputs, of which %d are uniquely identifiable:\n" % (min_outputs, max_unique))
-  print(sorted(example_outputs, key = lambda x: x[1], reverse = True))
+  print("Best CoinJoin solution found has %d outputs, of which %d are uniquely identifiable:" % (min_outputs, max_unique))
+  print(example_outputs)
   print("\nraw model:\n")
   print(model)
