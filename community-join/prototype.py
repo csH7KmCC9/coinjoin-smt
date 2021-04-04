@@ -10,7 +10,7 @@ import sys
 #Example community CoinJoin config:
 min_feerate = 5 #sats per vbyte target minimum
 max_feerate = 11 #sats per vbyte maximum we're willing to pay
-solver_iteration_timeout = 60000 #allowed to use up to 60 seconds per SMT solver call
+solver_iteration_timeout = 180000 #allowed to use up to 180 seconds per SMT solver call
 min_output_amt = 30000 #minimum number of satoshis that can go to each output
 max_party_fragmentation_factor = 3 #if party provides x inputs, allow giving that party up to x times this number of outputs
 
