@@ -114,19 +114,19 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
     if party != example_taker:
       txfee_constraints.add(Equals(party_txfee[party], Int(fee_contribution)))
     else:
+      other_party_txfees = reduce(lambda x,y: x+y, [x[1] if x[0] != party else 0 for x in example_txfees])
       txfee_constraints.add(Equals(Minus(party_txfee[party],
                                          party_cjfee[party]),
                                    Minus(party_gives[party],
                                          party_gets[party])))
+      txfee_constraints.add(Equals(txfee,
+                                   Plus(party_txfee[party],
+                                        Int(other_party_txfees))))
   for (party, fee) in example_cjfee:
     if party != example_taker:
       txfee_constraints.add(Equals(party_cjfee[party], Int(fee)))
     else:
       txfee_constraints.add(LE(party_cjfee[party], Int(0)))
-      txfee_constraints.add(Or(Equals(party_cjfee[party],
-                                      Int(0)),
-                               Equals(party_txfee[party],
-                                      txfee)))
 
   #input_party and input_amt bindings:
   for i in range(0, num_inputs):
