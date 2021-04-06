@@ -61,6 +61,9 @@ def recover_cj_config_from_model(model):
 
   return (selected_inputs, sorted(outputs, key = lambda x: x[1], reverse = True))
 
+def bool_to_int(x):
+    return Ite(x, Int(1), Int(0))
+
 def solve_smt_problem(max_outputs, min_anonymity_score = None, timeout = None):
   #constraints:
   input_constraints = set()
@@ -134,7 +137,7 @@ def solve_smt_problem(max_outputs, min_anonymity_score = None, timeout = None):
                                GT(output_amt[i],
                                   Int(min(0, min_output_amt-1)))))
   #calculate num_outputs and bind max_outputs:
-  output_constraints.add(Equals(num_outputs, Plus([Ite(x, Int(0), Int(1)) for x in output_unused])))
+  output_constraints.add(Equals(num_outputs, Plus([bool_to_int(Not(x)) for x in output_unused])))
   output_constraints.add(Equals(max_outputs_sym, Int(max_outputs)))
 
   #txfee, party_gets, and party_gives calculation/constraints/binding:
@@ -146,7 +149,7 @@ def solve_smt_problem(max_outputs, min_anonymity_score = None, timeout = None):
       owned = Equals(input_party[i],
                      Int(party))
       amt = Ite(owned, input_amt[i], Int(0))
-      owned_vec.append(Ite(owned, Int(1), Int(0)))
+      owned_vec.append(bool_to_int(owned))
       amt_vec.append(amt)
     input_constraints.add(Equals(party_numinputs[party], Plus(owned_vec)))
     input_constraints.add(Equals(party_gives[party], Plus(amt_vec)))
@@ -163,7 +166,7 @@ def solve_smt_problem(max_outputs, min_anonymity_score = None, timeout = None):
       owned = Equals(output_party[i],
                      Int(party))
       amt = Ite(owned, output_amt[i], Int(0))
-      owned_vec.append(Ite(owned, Int(1), Int(0)))
+      owned_vec.append(bool_to_int(owned))
       amt_vec.append(amt)
     output_constraints.add(Equals(party_gets[party], Plus(amt_vec)))
     output_constraints.add(Equals(party_numoutputs[party], Plus(owned_vec)))
@@ -192,7 +195,7 @@ def solve_smt_problem(max_outputs, min_anonymity_score = None, timeout = None):
                                   Not(Equals(output_party[k],
                                              output_party[idx])))\
                               for (k, v) in filter(lambda x: x[0] != idx, output_amt.items())]
-    score = Plus([Ite(x, Int(1), Int(0)) for x in outputs_equal_not_ours])
+    score = Plus([bool_to_int(x) for x in outputs_equal_not_ours])
     anonymityset_constraints.add(Equals(output_score[idx], score))
     return score
   anonymityset_constraints.add(Equals(anonymity_score, Plus([score_output(idx) for (idx, _) in output_amt.items()])))

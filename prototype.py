@@ -66,6 +66,9 @@ def recover_cj_config_from_model(model):
 
   return (selected_inputs, sorted(outputs, key = lambda x: x[1], reverse = True))
 
+def bool_to_int(x):
+    return Ite(x, Int(1), Int(0))
+
 def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
   #constraints:
   input_constraints = set()
@@ -149,7 +152,7 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
                                GT(output_amt[i],
                                   Int(min(0, min_output_amt-1)))))
   #calculate num_outputs and bind max_outputs:
-  output_constraints.add(Equals(num_outputs, Plus([Ite(x, Int(0), Int(1)) for x in output_unused])))
+  output_constraints.add(Equals(num_outputs, Plus([bool_to_int(Not(x)) for x in output_unused])))
   output_constraints.add(Equals(max_outputs_sym, Int(max_outputs)))
 
   #txfee, party_gets, and party_gives calculation/constraints/binding:
@@ -183,11 +186,7 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
 
   #build anonymity set constraints:
   #first, no matter what, we retain the core CoinJoin with the biggest anonymity set:
-  num_outputs_at_main_cj_amt = Plus([Ite(Equals(v,
-                                                main_cj_amt),
-                                         Int(1),
-                                         Int(0))\
-                                     for (k, v) in output_amt.items()])
+  num_outputs_at_main_cj_amt = Plus([bool_to_int(Equals(v, main_cj_amt)) for (k, v) in output_amt.items()])
   anonymityset_constraints.add(Equals(main_cj_amt,
                                       Int(example_amt) if example_amt != 0 else party_gets[example_taker]))
   anonymityset_constraints.add(GE(num_outputs_at_main_cj_amt,
@@ -204,14 +203,10 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
       return And(Equals(output_party[idx],
                         Int(party)),
                  And(disequal))
-    unique_amt_count = Plus([Ite(belongs_and_unique(k),
-                                 Int(1),
-                                 Int(0))\
-                             for (k, v) in output_amt.items()])
+    unique_amt_count = Plus([bool_to_int(belongs_and_unique(k)) for (k, v) in output_amt.items()])
     anonymityset_constraints.add(LE(unique_amt_count, Int(1)))
 
   #calculate how many outputs are uniquely identifiable (unused outputs are excluded):
-  in_anonymity_set = list()
   for (idx, amt) in output_amt.items():
     not_unique = Or(Equals(output_party[idx],
                            Int(-1)),
@@ -221,13 +216,10 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
                                        output_party[idx])))\
                         for (k, v) in filter(lambda x: x[0] != idx, output_amt.items())]))
     anonymityset_constraints.add(Equals(output_not_unique[idx],
-                                        Ite(not_unique,
-                                            Int(1),
-                                            Int(0))))
-    in_anonymity_set.append(output_not_unique[idx])
+                                        bool_to_int(not_unique)))
   anonymityset_constraints.add(Equals(num_unique_outputs,
                                       Minus(max_outputs_sym,
-                                            Plus(in_anonymity_set))))
+                                            Plus([not_unique for (_, not_unique) in output_not_unique.items()]))))
 
   #constrain (if set) the number of uniquely-identifiable outputs
   #(i.e. those not in an anonymity set with cardinality > 1):
