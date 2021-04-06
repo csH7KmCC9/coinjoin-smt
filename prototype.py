@@ -186,8 +186,12 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
 
   #also, each party should only have at most one output not part of any anonymity set:
   for party in parties:
-    def belongs_and_unique(idx):  #does it belong to party, and is it unique among output amounts?
-      disequal = [Not(Equals(v, output_amt[idx])) for (k, v) in filter(lambda x: x[0] != idx, output_amt.items())]
+    def belongs_and_unique(idx):
+      disequal = [Or(Not(Equals(v,
+                         output_amt[idx])),
+                     Equals(output_party[k],
+                            Int(party)))\
+                  for (k, v) in filter(lambda x: x[0] != idx, output_amt.items())]
       return And(Equals(output_party[idx],
                         Int(party)),
                  And(disequal))
