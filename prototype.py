@@ -110,9 +110,17 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
 
   #party_txfee and party_cjfee bindings:
   for (party, fee_contribution) in example_txfees:
-    txfee_constraints.add(Equals(party_txfee[party], Int(fee_contribution)))
+    if party != example_taker:
+      txfee_constraints.add(Equals(party_txfee[party], Int(fee_contribution)))
+    else:
+      txfee_constraints.add(Equals(party_txfee[party],
+                                   Minus(party_gives[party],
+                                         party_gets[party])))
   for (party, fee) in example_cjfee:
-    txfee_constraints.add(Equals(party_cjfee[party], Int(fee)))
+    if party != example_taker:
+      txfee_constraints.add(Equals(party_cjfee[party], Int(fee)))
+    else:
+      txfee_constraints.add(Equals(party_cjfee[party], Int(0)))
 
   #input_party and input_amt bindings:
   for i in range(0, num_inputs):
