@@ -108,7 +108,7 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
 
   #constraint construction:
 
-  #party_txfee and party_cjfee bindings:
+  #party_txfee and party_cjfee bindings and (for the taker) constraints:
   for (party, fee_contribution) in example_txfees:
     txfee_constraints.add(LE(party_txfee[party], txfee))
     if party != example_taker:
@@ -138,20 +138,18 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
   #add constraints on output_party and output_amt:
   # -either output_party[i] == -1 and output_amt[i] == 0
   # -or else output_amt[i] > 0
-  output_is_used = list()
+  output_unused = list()
   for i in range(0, max_outputs):
-    output_is_used.append(Ite(Equals(output_party[i],
-                                     Int(-1)),
-                              Int(0),
-                              Int(1)))
-    output_constraints.add(Ite(Equals(output_party[i],
-                                      Int(-1)),
+    output_is_unused = Equals(output_party[i],
+                              Int(-1))
+    output_unused.append(output_is_unused)
+    output_constraints.add(Ite(output_is_unused,
                                Equals(output_amt[i],
                                       Int(0)),
                                GT(output_amt[i],
                                   Int(min(0, min_output_amt-1)))))
   #calculate num_outputs and bind max_outputs:
-  output_constraints.add(Equals(num_outputs, Plus(output_is_used)))
+  output_constraints.add(Equals(num_outputs, Plus([Ite(x, Int(0), Int(1)) for x in output_unused])))
   output_constraints.add(Equals(max_outputs_sym, Int(max_outputs)))
 
   #txfee, party_gets, and party_gives calculation/constraints/binding:
@@ -177,14 +175,11 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
                                                    txfee)))))
 
     #party_gets and output constraint/invariant:
-    amt_vec = list()
-    for i in range(0, max_outputs):
-      amt = Ite(Equals(output_party[i],
-                       Int(party)),
-                output_amt[i],
-                Int(0))
-      amt_vec.append(amt)
-    output_constraints.add(Equals(party_gets[party], Plus(amt_vec)))
+    output_constraints.add(Equals(party_gets[party], Plus([Ite(Equals(output_party[i],
+                                                                      Int(party)),
+                                                               output_amt[i],
+                                                               Int(0))
+                                                           for i in range(0, max_outputs)])))
 
   #build anonymity set constraints:
   #first, no matter what, we retain the core CoinJoin with the biggest anonymity set:

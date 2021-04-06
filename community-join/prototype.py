@@ -123,21 +123,18 @@ def solve_smt_problem(max_outputs, min_anonymity_score = None, timeout = None):
   #add constraints on output_party and output_amt:
   # -either output_party[i] == -1 and output_amt[i] == 0
   # -or else output_amt[i] > 0
-  output_is_used = list()
+  output_unused = list()
   for i in range(0, max_outputs):
-    output_is_used.append(Ite(Equals(output_party[i],
-                                     Int(-1)),
-                              Int(0),
-                              Int(1)))
-    output_constraints.add(Ite(Equals(output_party[i],
-                                      Int(-1)),
+    output_is_unused = Equals(output_party[i],
+                              Int(-1))
+    output_unused.append(output_is_unused)
+    output_constraints.add(Ite(output_is_unused,
                                Equals(output_amt[i],
                                       Int(0)),
                                GT(output_amt[i],
                                   Int(min(0, min_output_amt-1)))))
-
   #calculate num_outputs and bind max_outputs:
-  output_constraints.add(Equals(num_outputs, Plus(output_is_used)))
+  output_constraints.add(Equals(num_outputs, Plus([Ite(x, Int(0), Int(1)) for x in output_unused])))
   output_constraints.add(Equals(max_outputs_sym, Int(max_outputs)))
 
   #txfee, party_gets, and party_gives calculation/constraints/binding:
