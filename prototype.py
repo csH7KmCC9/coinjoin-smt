@@ -150,7 +150,7 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
                                Equals(output_amt[i],
                                       Int(0)),
                                GT(output_amt[i],
-                                  Int(min(0, min_output_amt-1)))))
+                                  Int(max(0, min_output_amt-1)))))
   #calculate num_outputs and bind max_outputs:
   output_constraints.add(Equals(num_outputs, Plus([bool_to_int(Not(x)) for x in output_unused])))
   output_constraints.add(Equals(max_outputs_sym, Int(max_outputs)))
