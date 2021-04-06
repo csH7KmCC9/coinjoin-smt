@@ -210,7 +210,7 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
                              for (k, v) in output_amt.items()])
     anonymityset_constraints.add(LE(unique_amt_count, Int(1)))
 
-  #calculate how many outputs are uniquely identifiable (or unused, which counts for the same):
+  #calculate how many outputs are uniquely identifiable (unused outputs are excluded):
   in_anonymity_set = list()
   for (idx, amt) in output_amt.items():
     not_unique = Or(Equals(output_party[idx],
