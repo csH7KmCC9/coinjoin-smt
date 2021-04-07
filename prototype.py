@@ -112,7 +112,6 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
 
   #party_txfee and party_cjfee bindings and (for the taker) constraints:
   for (party, fee_contribution) in example_txfees:
-    txfee_constraints.add(LE(party_txfee[party], txfee))
     if party != example_taker:
       txfee_constraints.add(Equals(party_txfee[party], Int(fee_contribution)))
     else:
