@@ -220,10 +220,13 @@ def solve_smt_problem(max_outputs, min_anonymity_score = None, timeout = None):
   invariants.add(Equals(total_out, Plus([v for (k, v) in party_gets.items()])))
 
   #build txfee calculation constraint: 11 + 68 * num_inputs + 31 * num_outputs
+  num_used_inputs = Plus([party_numinputs[party] for party in parties])
   txfee_constraints.add(Equals(txsize,
-                               Plus(Int(11 + 68 * num_inputs),
-                               Times(Int(31),
-                                     num_outputs))))
+                               Plus(Plus(Int(11),
+                                         Times(68,
+                                               num_used_inputs)),
+                                    Times(Int(31),
+                                          num_outputs))))
   txfee_constraints.add(GE(txfee, Times(txsize, Int(min_feerate))))
   txfee_constraints.add(LE(txfee, Times(txsize, Int(max_feerate))))
 
