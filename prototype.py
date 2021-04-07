@@ -167,7 +167,7 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
     #party_gives and input constraint/invariant
     input_constraints.add(Equals(party_gives[party],
                                  Plus([Int(a)\
-                                      for (p, a) in filter(lambda x: x[0] == party, example_inputs)])))
+                                       for (p, a) in filter(lambda x: x[0] == party, example_inputs)])))
 
     #txfee calculations:
     if party != example_taker:
@@ -244,8 +244,8 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
   #build txfee calculation constraint: 11 + 68 * num_inputs + 31 * num_outputs
   txfee_constraints.add(Equals(txsize,
                                Plus(Int(11 + 68 * num_inputs),
-                               Times(Int(31),
-                                     num_outputs))))
+                                    Times(Int(31),
+                                          num_outputs))))
   txfee_constraints.add(GE(txfee, Times(txsize, Int(min_feerate))))
   txfee_constraints.add(LE(txfee, Times(txsize, Int(max_feerate))))
 
@@ -289,7 +289,7 @@ def optimization_procedure():
           return (None, None, None) #we couldn't even solve the initial, most relaxed constraint. bail out.
         else:
           max_unique_minimized = True
-          print("max_unique has been minimized at %d" % max_unique)
+          print("Now constraining max_unique to <= %d and attempting to minimize transaction size" % max_unique)
       else:
         break
     else:
@@ -299,7 +299,7 @@ def optimization_procedure():
       best_model = result[1]
       if max_unique == 0:
         max_unique_minimized = True
-      print("%d outputs with %d uniquely identifiable" % (min_outputs, max_unique))
+      print("%d outputs, of which %d are uniquely identifiable" % (min_outputs, max_unique))
       (_, example_outputs) = recover_cj_config_from_model(best_model)
       print(example_outputs)
 
