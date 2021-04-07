@@ -126,8 +126,6 @@ def solve_smt_problem(max_outputs, max_unique = None, timeout = None):
   for (party, fee) in example_cjfee:
     if party != example_taker:
       txfee_constraints.add(Equals(party_cjfee[party], Int(fee)))
-    else:
-      txfee_constraints.add(LE(party_cjfee[party], Int(0)))
 
   #input_party and input_amt bindings:
   for i in range(0, num_inputs):
