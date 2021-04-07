@@ -12,6 +12,7 @@ min_feerate = 5 #sats per vbyte target minimum
 max_feerate = 11 #sats per vbyte maximum we're willing to pay
 solver_iteration_timeout = 180000 #allowed to use up to 180 seconds per SMT solver call
 min_output_amt = 30000 #minimum number of satoshis that can go to each output
+min_output_amt_delta = 3000 #minimum number of satoshis that output amounts must differ by, if they differ
 max_party_fragmentation_factor = 3 #if party provides x inputs, allow giving that party up to x times this number of outputs
 
 #a list of (party, satoshis) tuples
@@ -131,6 +132,17 @@ def solve_smt_problem(max_outputs, min_anonymity_score = None, timeout = None):
     output_is_unused = Equals(output_party[i],
                               Int(-1))
     output_unused.append(output_is_unused)
+    min_delta_satisfied = Or(output_is_unused,
+                             And([Or(Equals(output_amt[i],
+                                            output_amt[j]),
+                                     Or(GE(output_amt[j],
+                                           Plus(output_amt[i],
+                                                Int(min_output_amt_delta))),
+                                        LE(output_amt[j],
+                                           Minus(output_amt[i],
+                                                 Int(min_output_amt_delta)))))\
+                                  for j in filter(lambda j: j != i, range(0, max_outputs))]))
+    output_constraints.add(min_delta_satisfied)
     output_constraints.add(Ite(output_is_unused,
                                Equals(output_amt[i],
                                       Int(0)),
