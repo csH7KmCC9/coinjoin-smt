@@ -44,7 +44,6 @@ def recover_cj_config_from_model(model):
   outputs = list()
   input_buf = list()
   output_buf = list()
-  contributing_parties = set()
 
   for i in range(0, model["max_outputs"]):
     party = model["output_party[%d]" % i]
@@ -59,7 +58,6 @@ def recover_cj_config_from_model(model):
     party = model["input_party[%d]" % i]
     amt = model["input_amt[%d]" % i]
     if party != -1:
-      contributing_parties.add(party)
       input_buf.append((party, amt))
   while len(input_buf) > 0:
     x = randbelow(len(input_buf))
