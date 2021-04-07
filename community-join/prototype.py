@@ -271,7 +271,7 @@ def optimization_procedure():
           return (None, None, None) #we couldn't even solve the initial, most relaxed constraint. bail out.
         else:
           anonymity_score_maximized = True
-          print("anonymity score has been maximized at %d" % min_anonymity_score)
+          print("Now constraining anonymity score to >= %d and attempting to minimize transaction size" % min_anonymity_score)
       else:
         break
     else:
