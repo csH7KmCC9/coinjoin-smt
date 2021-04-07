@@ -223,7 +223,7 @@ def solve_smt_problem(max_outputs, min_anonymity_score = None, timeout = None):
   num_used_inputs = Plus([party_numinputs[party] for party in parties])
   txfee_constraints.add(Equals(txsize,
                                Plus(Plus(Int(11),
-                                         Times(68,
+                                         Times(Int(68),
                                                num_used_inputs)),
                                     Times(Int(31),
                                           num_outputs))))
