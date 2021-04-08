@@ -1,8 +1,8 @@
-Community Join
+Perfect CoinJoins
 ----
-This is a repo for the solver for community joins. These are special CoinJoins where every participant receives exclusively non-uniquely-identifiable satoshis. It is up to each participant to ensure they do not actually harm their privacy with their choice of UTXOs to offer (similar to the risks of doing a JoinMarket sweep of those UTXOs).
+This is a repo for the (WIP) solver for perfect CoinJoins. These are special CoinJoins where every participant receives exclusively non-uniquely-identifiable satoshis. However, each offered input is not necessarily consumed in the CoinJoin; it depends on the inputs offered by other participants and whether a good CoinJoin configuration including that input can be quickly found.
 
-Because every participant benefits from the CoinJoin, there is no maker/taker model and no reliable way to earn satoshis. Every participant must be willing to contribute a minimum amount to the CoinJoin transaction fee, proportional to how many of the CoinJoin inputs are theirs.
+Because every participant benefits from the CoinJoin, there is no maker/taker model and no reliable way to earn satoshis. Every participant must be willing to contribute a minimum amount to the CoinJoin transaction fee according to the number of offered inputs. However, this maximum contribution is scaled proportionally to the number of offered inputs that are actually used, so each participant only pays for their inputs that get used in the CoinJoin.
 
 - All parties offer to contribute towards the tx fee
 - There is one coordinator who knows the association between parties' inputs and outputs and may or may not be party to a given join.
